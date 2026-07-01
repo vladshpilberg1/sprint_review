@@ -10,7 +10,9 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 
-from app.agent import root_agent
+from app.agent import finalizer_agent, project_summarizer_agent
+from app.tools import extract_project_chunks
+
 
 # ---------------------------------------------------------------------------
 # Environment & page config
@@ -227,16 +229,81 @@ if uploaded_file is not None:
         if not api_key:
             st.error("Cannot generate summary: GOOGLE_API_KEY is missing.")
         else:
-            with st.spinner("🤖 Agent is analysing your sprint data…"):
-                # ── Run ADK agent ──────────────────────────────────────────
-                async def run_agent(csv_content: str) -> str:
+            status_placeholder = st.empty()
+            with status_placeholder.status("🤖 Running Sprint Review Pipeline...", expanded=True) as status_box:
+                
+                # ── Phase 1: Extract project chunks ──────────────────────────────
+                status_box.write("📁 Slicing CSV data into project chunks (Skill 1)...")
+                try:
+                    chunks = extract_project_chunks(csv_text)
+                    num_projects = len(chunks)
+                    status_box.write(f"✓ Found {num_projects} active projects.")
+                except Exception as chunk_err:
+                    status_box.update(label="❌ Chunking Failed", state="error")
+                    st.error(f"Failed to slice CSV: {chunk_err}")
+                    st.stop()
+
+                # ── Phase 2: Batch summarization ──────────────────────────────
+                status_box.write("⚡ Summarizing all projects in a single batch (respects API rate limits)...")
+                
+                async def run_batch_summarizer(all_chunks: dict) -> str:
                     session_service = InMemorySessionService()
                     session = await session_service.create_session(
                         app_name="sprint_review",
                         user_id="streamlit_user",
                     )
                     runner = Runner(
-                        agent=root_agent,
+                        agent=project_summarizer_agent,
+                        app_name="sprint_review",
+                        session_service=session_service,
+                    )
+                    
+                    # Package all chunks together in one prompt
+                    prompt_parts = ["Please summarize each of the following project chunks individually. Treat each project as an independent summary and follow the standard structure:\n"]
+                    for proj_name, chunk_md in all_chunks.items():
+                        prompt_parts.append(f"--- START PROJECT: {proj_name} ---")
+                        prompt_parts.append(chunk_md)
+                        prompt_parts.append(f"--- END PROJECT: {proj_name} ---\n")
+                        
+                    user_message = genai_types.Content(
+                        role="user",
+                        parts=[
+                            genai_types.Part(
+                                text="\n".join(prompt_parts)
+                            )
+                        ],
+                    )
+                    result_parts: list[str] = []
+                    async for event in runner.run_async(
+                        user_id="streamlit_user",
+                        session_id=session.id,
+                        new_message=user_message,
+                    ):
+                        if event.content and event.content.parts:
+                            for part in event.content.parts:
+                                if hasattr(part, "text") and part.text:
+                                    result_parts.append(part.text)
+                    return "\n".join(result_parts).strip()
+
+                try:
+                    all_summaries_text = asyncio.run(run_batch_summarizer(chunks))
+                    status_box.write("✓ Completed all project summaries.")
+                except Exception as sum_err:
+                    status_box.update(label="❌ Summarization Failed", state="error")
+                    st.error(f"Failed to summarize projects: {sum_err}")
+                    st.stop()
+
+                # ── Phase 3: Finalize sprint review ──────────────────────────────
+                status_box.write("✍ Compiling final 7-section weekly report (Skill 3)...")
+
+                async def run_finalizer(summaries_text: str) -> str:
+                    session_service = InMemorySessionService()
+                    session = await session_service.create_session(
+                        app_name="sprint_review",
+                        user_id="streamlit_user",
+                    )
+                    runner = Runner(
+                        agent=finalizer_agent,
                         app_name="sprint_review",
                         session_service=session_service,
                     )
@@ -245,8 +312,8 @@ if uploaded_file is not None:
                         parts=[
                             genai_types.Part(
                                 text=(
-                                    f"Please generate a sprint review summary for the following CSV data:\n\n"
-                                    f"```csv\n{csv_content}\n```"
+                                    f"Please finalize the weekly sprint review from the following per-project summaries:\n\n"
+                                    f"{summaries_text}"
                                 )
                             )
                         ],
@@ -264,30 +331,35 @@ if uploaded_file is not None:
                     return "\n".join(result_parts).strip()
 
                 try:
-                    summary_text = asyncio.run(run_agent(csv_text))
+                    summary_text = asyncio.run(run_finalizer(all_summaries_text))
+                    status_box.update(label="🎉 Pipeline Complete!", state="complete")
+                except Exception as final_err:
+                    status_box.update(label="❌ Finalization Failed", state="error")
+                    st.error(f"Failed to finalize report: {final_err}")
+                    st.stop()
 
-                    if summary_text:
-                        st.markdown('<div class="summary-card">', unsafe_allow_html=True)
-                        st.markdown(
-                            '<div class="section-label">📋 Sprint Summary</div>',
-                            unsafe_allow_html=True,
-                        )
-                        st.markdown(summary_text)
-                        st.markdown("</div>", unsafe_allow_html=True)
+                # Clear status indicator
+                status_placeholder.empty()
 
-                        # Download button
-                        st.download_button(
-                            label="⬇️ Download Summary as Markdown",
-                            data=summary_text,
-                            file_name="sprint_summary.md",
-                            mime="text/markdown",
-                        )
-                    else:
-                        st.warning("The agent returned an empty response. Check your API key and CSV format.")
+                if summary_text:
+                    st.markdown('<div class="summary-card">', unsafe_allow_html=True)
+                    st.markdown(
+                        '<div class="section-label">📋 Sprint Summary</div>',
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(summary_text)
+                    st.markdown("</div>", unsafe_allow_html=True)
 
-                except Exception as agent_err:
-                    st.error(f"Agent error: {agent_err}")
-                    st.exception(agent_err)
+                    # Download button
+                    st.download_button(
+                        label="⬇️ Download Summary as Markdown",
+                        data=summary_text,
+                        file_name="sprint_summary.md",
+                        mime="text/markdown",
+                    )
+                else:
+                    st.warning("The agent returned an empty response. Check your API key.")
+
 
 else:
     # ── Empty state illustration ───────────────────────────────────────────

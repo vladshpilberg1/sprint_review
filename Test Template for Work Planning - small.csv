@@ -1,0 +1,32 @@
+﻿Assignee,Plan,Hours,Project 1,Project 2,Project 3
+Alex,6/26 Plan - Actions, ,Resolve Issues with ABC,,"Write Unit tests to support Adoption for repo_a, repo_k and repo_y"
+Alex,6/26 Plan - Hours,40,26,,14
+Alex,6/26 Achieved - Actions,,Upgraded libraries to Resolve issues with ABC,,"Completed, raising coverage >91%"
+Alex,6/26 Achieved - Hours,40,28,,12
+Alex,7/3 Plan - Actions,,Resolve Critical Issues with DEX,,Refactor repo_k and Write Unit tests to support Adoption
+Alex,7/3 Plan - Hours,40,24,,16
+,,,,,
+Bob,6/26 Plan - Actions,,,Design and Implement Feature A to be ready for Deployment.,"Connect tool to scan code coverage, document baseline by updating confluence and create corresponding Jira tickets for the entire group"
+Bob,6/26 Plan - Hours,40,,20,20
+Bob,6/26 Achieved - Actions,,,Unble to complete further steps due to being blocked by the DevOps to enable MariaDB,Completed for majority of repos
+Bob,6/26 Achieved - Hours,42,,20,22
+Bob,7/3 Plan - Actions,,,Finalize changes and complete Deployment,Complete baseline documentation and confluence updates for remaining repos
+Bob,7/3 Plan - Hours,40,,34,6
+,,,,,
+Calvin,6/26 Plan - Actions,,Resolve Issues with XYZ,Support architectrural design for Feature A,
+Calvin,6/26 Plan - Hours,40,36,4,
+Calvin,6/26 Achieved - Actions,,Resolved some Issues with XYZ,Prepared Design and passed Archictual review. Details are documented on Confluence. ,
+Calvin,6/26 Achieved - Hours,40,34,6,
+Calvin,7/3 Plan - Actions,,Finish Resolving Issues with XYZ,Support minor architectual design changes,
+Calvin,7/3 Plan - Hours,40,37,3,
+,,,,,
+Dan,6/26 Plan - Actions,,,,"Write Unit tests to support Adoption for repo_b, repo_m and repo_u"
+Dan,6/26 Plan - Hours,14,,,14
+Dan,6/26 Achieved - Actions,,,,"Completed, raising coverage >91%"
+Dan,6/26 Achieved - Hours,12,,,12
+Dan,7/3 Plan - Actions,,,,
+Dan,7/3 Plan - Hours,0,,,
+,,,,,
+,,,,,
+,,,,,
+,,,,,
