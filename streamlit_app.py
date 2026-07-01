@@ -214,7 +214,7 @@ if uploaded_file is not None:
     try:
         import io
         preview_df = pd.read_csv(io.StringIO(csv_text)).dropna(how="all")
-        st.dataframe(preview_df, use_container_width=True, hide_index=True)
+        st.dataframe(preview_df, width="stretch", hide_index=True)
     except Exception as preview_err:
         st.error(f"Could not parse CSV for preview: {preview_err}")
 
@@ -223,7 +223,7 @@ if uploaded_file is not None:
     # ── Generate button ────────────────────────────────────────────────────
     col_btn, _ = st.columns([1, 2])
     with col_btn:
-        generate = st.button("✨ Generate Summary", key="generate_btn", use_container_width=True)
+        generate = st.button("✨ Generate Summary", key="generate_btn", width="stretch")
 
     if generate:
         if not api_key:
@@ -247,6 +247,7 @@ if uploaded_file is not None:
                 status_box.write("⚡ Summarizing all projects in a single batch (respects API rate limits)...")
                 
                 async def run_batch_summarizer(all_chunks: dict) -> str:
+                    print("run_batch_summarizer start")
                     session_service = InMemorySessionService()
                     session = await session_service.create_session(
                         app_name="sprint_review",
@@ -283,6 +284,7 @@ if uploaded_file is not None:
                             for part in event.content.parts:
                                 if hasattr(part, "text") and part.text:
                                     result_parts.append(part.text)
+                    print("run_batch_summarizer end")
                     return "\n".join(result_parts).strip()
 
                 try:
@@ -291,6 +293,7 @@ if uploaded_file is not None:
                 except Exception as sum_err:
                     status_box.update(label="❌ Summarization Failed", state="error")
                     st.error(f"Failed to summarize projects: {sum_err}")
+                    print(f"Failed to summarize projects: {sum_err}")
                     st.stop()
 
                 # ── Phase 3: Finalize sprint review ──────────────────────────────
@@ -318,47 +321,51 @@ if uploaded_file is not None:
                             )
                         ],
                     )
+                    print("run_finalizer 1")
                     result_parts: list[str] = []
                     async for event in runner.run_async(
                         user_id="streamlit_user",
                         session_id=session.id,
                         new_message=user_message,
                     ):
+                        print(event)
                         if event.content and event.content.parts:
                             for part in event.content.parts:
                                 if hasattr(part, "text") and part.text:
                                     result_parts.append(part.text)
+                    print("run_finalizer 3")
                     return "\n".join(result_parts).strip()
 
                 try:
+                    print("run_finalizer start")
                     summary_text = asyncio.run(run_finalizer(all_summaries_text))
+                    print("run_finalizer end")
+                    st.session_state["summary_result"] = summary_text
                     status_box.update(label="🎉 Pipeline Complete!", state="complete")
                 except Exception as final_err:
                     status_box.update(label="❌ Finalization Failed", state="error")
                     st.error(f"Failed to finalize report: {final_err}")
+                    print(f"Failed to finalize report: {final_err}")
                     st.stop()
 
-                # Clear status indicator
-                status_placeholder.empty()
+    # ── Display results (persisted in session_state across reruns) ────────
+    if "summary_result" in st.session_state and st.session_state["summary_result"]:
+        summary_text = st.session_state["summary_result"]
+        st.markdown('<div class="summary-card">', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-label">📋 Sprint Summary</div>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(summary_text)
+        st.markdown("</div>", unsafe_allow_html=True)
 
-                if summary_text:
-                    st.markdown('<div class="summary-card">', unsafe_allow_html=True)
-                    st.markdown(
-                        '<div class="section-label">📋 Sprint Summary</div>',
-                        unsafe_allow_html=True,
-                    )
-                    st.markdown(summary_text)
-                    st.markdown("</div>", unsafe_allow_html=True)
-
-                    # Download button
-                    st.download_button(
-                        label="⬇️ Download Summary as Markdown",
-                        data=summary_text,
-                        file_name="sprint_summary.md",
-                        mime="text/markdown",
-                    )
-                else:
-                    st.warning("The agent returned an empty response. Check your API key.")
+        # Download button
+        st.download_button(
+            label="⬇️ Download Summary as Markdown",
+            data=summary_text,
+            file_name="sprint_summary.md",
+            mime="text/markdown",
+        )
 
 
 else:
