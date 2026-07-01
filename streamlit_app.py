@@ -243,53 +243,62 @@ if uploaded_file is not None:
                     st.error(f"Failed to slice CSV: {chunk_err}")
                     st.stop()
 
-                # ── Phase 2: Batch summarization ──────────────────────────────
-                status_box.write("⚡ Summarizing all projects in a single batch (respects API rate limits)...")
-                
-                async def run_batch_summarizer(all_chunks: dict) -> str:
-                    print("run_batch_summarizer start")
-                    session_service = InMemorySessionService()
-                    session = await session_service.create_session(
-                        app_name="sprint_review",
-                        user_id="streamlit_user",
-                    )
-                    runner = Runner(
-                        agent=project_summarizer_agent,
-                        app_name="sprint_review",
-                        session_service=session_service,
-                    )
-                    
-                    # Package all chunks together in one prompt
-                    prompt_parts = ["Please summarize each of the following project chunks individually. Treat each project as an independent summary and follow the standard structure:\n"]
-                    for proj_name, chunk_md in all_chunks.items():
-                        prompt_parts.append(f"--- START PROJECT: {proj_name} ---")
-                        prompt_parts.append(chunk_md)
-                        prompt_parts.append(f"--- END PROJECT: {proj_name} ---\n")
-                        
-                    user_message = genai_types.Content(
-                        role="user",
-                        parts=[
-                            genai_types.Part(
-                                text="\n".join(prompt_parts)
-                            )
-                        ],
-                    )
-                    result_parts: list[str] = []
-                    async for event in runner.run_async(
-                        user_id="streamlit_user",
-                        session_id=session.id,
-                        new_message=user_message,
-                    ):
-                        if event.content and event.content.parts:
-                            for part in event.content.parts:
-                                if hasattr(part, "text") and part.text:
-                                    result_parts.append(part.text)
-                    print("run_batch_summarizer end")
-                    return "\n".join(result_parts).strip()
+                # ── Phase 2: Per-chunk summarization ─────────────────────────
+                status_box.write(f"⚡ Summarizing {num_projects} projects (up to 5 concurrent calls)...")
+
+                MAX_CONCURRENT = 5  # respect Gemini API rate limits
+
+                async def summarize_one_chunk(
+                    proj_name: str, chunk_md: str, semaphore: asyncio.Semaphore
+                ) -> tuple[str, str]:
+                    """Summarize a single project chunk in its own session."""
+                    async with semaphore:
+                        session_service = InMemorySessionService()
+                        session = await session_service.create_session(
+                            app_name="sprint_review",
+                            user_id="streamlit_user",
+                        )
+                        runner = Runner(
+                            agent=project_summarizer_agent,
+                            app_name="sprint_review",
+                            session_service=session_service,
+                        )
+                        user_message = genai_types.Content(
+                            role="user",
+                            parts=[
+                                genai_types.Part(
+                                    text=f"Summarize the following project chunk:\n\n{chunk_md}"
+                                )
+                            ],
+                        )
+                        result_parts: list[str] = []
+                        async for event in runner.run_async(
+                            user_id="streamlit_user",
+                            session_id=session.id,
+                            new_message=user_message,
+                        ):
+                            if event.content and event.content.parts:
+                                for part in event.content.parts:
+                                    if hasattr(part, "text") and part.text:
+                                        result_parts.append(part.text)
+                        return proj_name, "\n".join(result_parts).strip()
+
+                async def run_all_summarizers(all_chunks: dict) -> str:
+                    semaphore = asyncio.Semaphore(MAX_CONCURRENT)
+                    tasks = [
+                        summarize_one_chunk(name, md, semaphore)
+                        for name, md in all_chunks.items()
+                    ]
+                    results = await asyncio.gather(*tasks)
+                    # Combine all summaries, separated by a divider
+                    combined = []
+                    for proj_name, summary in results:
+                        combined.append(f"--- {proj_name} ---\n{summary}")
+                    return "\n\n".join(combined)
 
                 try:
-                    all_summaries_text = asyncio.run(run_batch_summarizer(chunks))
-                    status_box.write("✓ Completed all project summaries.")
+                    all_summaries_text = asyncio.run(run_all_summarizers(chunks))
+                    status_box.write(f"✓ Completed all {num_projects} project summaries.")
                 except Exception as sum_err:
                     status_box.update(label="❌ Summarization Failed", state="error")
                     st.error(f"Failed to summarize projects: {sum_err}")
