@@ -11,6 +11,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types as genai_types
 
 from app.agent import finalizer_agent, project_summarizer_agent
+from app.security import sanitize
 from app.tools import extract_project_chunks
 
 
@@ -253,6 +254,13 @@ if uploaded_file is not None:
                 ) -> tuple[str, str]:
                     """Summarize a single project chunk in its own session."""
                     async with semaphore:
+                        # ── Security checkpoint ──────────────────────────────
+                        chunk_md, sec_report = sanitize(chunk_md)
+                        if sec_report["pii_categories_redacted"]:
+                            print(f"[SECURITY] PII scrubbed in '{proj_name}': {sec_report['pii_categories_redacted']}")
+                        if sec_report["prompt_injection_detected"]:
+                            print(f"[SECURITY] Prompt injection blocked in '{proj_name}'")
+
                         session_service = InMemorySessionService()
                         session = await session_service.create_session(
                             app_name="sprint_review",
@@ -313,6 +321,13 @@ if uploaded_file is not None:
                 status_box.write("✍ Compiling final 7-section weekly report (Skill 3)...")
 
                 async def run_finalizer(summaries_text: str) -> str:
+                    # ── Security checkpoint ──────────────────────────────────
+                    summaries_text, sec_report = sanitize(summaries_text)
+                    if sec_report["pii_categories_redacted"]:
+                        print(f"[SECURITY] PII scrubbed in finalizer input: {sec_report['pii_categories_redacted']}")
+                    if sec_report["prompt_injection_detected"]:
+                        print("[SECURITY] Prompt injection blocked in finalizer input")
+
                     session_service = InMemorySessionService()
                     session = await session_service.create_session(
                         app_name="sprint_review",

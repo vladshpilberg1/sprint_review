@@ -22,6 +22,7 @@ from google.genai import types as genai_types
 
 from app.csv_compiler import compile_week_csv
 from app.data_collection_agent import data_collection_agent
+from app.security import sanitize
 
 # ---------------------------------------------------------------------------
 # Environment & page config
@@ -285,6 +286,13 @@ async def _create_session() -> tuple:
 
 async def _send_message(service, session_id: str, text: str) -> str:
     """Send a user message to the data-collection agent and return its reply."""
+    # ── Security checkpoint ──────────────────────────────────────────────
+    text, sec_report = sanitize(text)
+    if sec_report["pii_categories_redacted"]:
+        print(f"[SECURITY] PII scrubbed: {sec_report['pii_categories_redacted']}")
+    if sec_report["prompt_injection_detected"]:
+        print("[SECURITY] Prompt injection attempt blocked")
+
     runner = Runner(
         agent=data_collection_agent,
         app_name="sprint_data_collection",
