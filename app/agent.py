@@ -36,14 +36,14 @@ def _load_skill_instruction(skill_name: str) -> str:
 
 project_summarizer_agent = Agent(
     name="project_summarizer_agent",
-    model="gemini-3.5-flash",
+    model="gemini-2.5-flash-lite",
     instruction=_load_skill_instruction("sprint-chunk-summarizer"),
     description="Summarizes an individual project chunk.",
 )
 
 finalizer_agent = Agent(
     name="finalizer_agent",
-    model="gemini-2.5-flash-lite",
+    model="gemini-3.5-flash",
     instruction=_load_skill_instruction("sprint-review-finalizer"),
     description="Aggregates individual project summaries into the final sprint review.",
 )
