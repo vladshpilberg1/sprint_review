@@ -1,0 +1,34 @@
+﻿,,,Refinement,Refinement,Delivery,Delivery,Operations,Operations
+Assignee,Plan,Hours,Eval Suite,Prompt Migrtion,Tyrell Corp,Buy N Large,Code Coverage >90%,Test Automation
+Alex,7/03 Plan - Actions, ,Resolve found bugs with eval suite,,,,"Write Unit tests to support Adoption for repo_a, repo_k and repo_y","Improve Regression Automation by creating Automated Tests for repo_a, repo_k"
+Alex,7/03 Plan - Hours,40,18,,,,12,10
+Alex,7/03 Achieved - Actions,,"Enchanced Eval Suite capabilitiees based on report issues, still need to address the UI updates and retest",,,,"Completed, will go into this release",Wrote tests for repo_a and repo_k to be reviewed and approved by the SDET
+Alex,7/03 Achieved - Hours,40,16,,,,12,12
+Alex,7/10 Plan - Actions,,Retest after UI updates and make changes as needed,Evaluate and Test required changes to support 3.3. to 4.o migration,,,,Improve Regression Automation by creating additional Automated Tests for epo_y
+Alex,7/10 Plan - Hours,40,10,24,,,,6
+,,,,,,,,
+,,,,,,,,
+Dan,7/03 Plan - Actions,,,,Fix erros on load of the UI screen,,"Write Unit tests to support Adoption for repo_d, repo_o and repo_u","Write Automation tests to support Adoption for repo_b, repo_m and repo_u"
+Dan,7/03 Plan - Hours,40,,,14,,12,14
+Dan,7/03 Achieved - Actions,,,,Adjusted layout to address bugs found,,"Completed, will go into this release",Tests create and reviwed by SDET.
+Dan,7/03 Achieved - Hours,40,,,12,,12,16
+Dan,7/10 Plan - Actions,,,,"Extend existing agent capabilities to support jpeg files: design, mocks, implementation",,,
+Dan,7/10 Plan - Hours,30,,,30,,,
+,,,,,,,,
+,,,,,,,,
+Ike,7/03 Plan - Actions, ,,,,,,
+Ike,7/03 Plan - Hours,0,,,,,,
+Ike,7/03 Achieved - Actions,,,,,,,
+Ike,7/03 Achieved - Hours,0,,,,,,
+Ike,7/10 Plan - Actions,,,,,,,
+Ike,7/10 Plan - Hours,0,,,,,,
+,,,,,,,,
+Kyle,7/03 Plan - Actions,,,,,,,
+Kyle,7/03 Plan - Hours,0,,,,,,
+Kyle,7/03 Achieved - Actions,,,,,,,
+Kyle,7/03 Achieved - Hours,0,,,,,,
+Kyle,7/10 Plan - Actions,,,Modify promps and test perfromance for migration to 4o,,,"Write Unit tests to support Adoption for repo_i, repo_t",
+Kyle,7/10 Plan - Hours,40,,32,,,8,
+,,,,,,,,
+,,,,,,,,
+,,,,,,,,
