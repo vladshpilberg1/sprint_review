@@ -213,9 +213,30 @@ if uploaded_file is not None:
     # ── Data preview ──────────────────────────────────────────────────────
     st.markdown('<div class="section-label">👁️ Data Preview</div>', unsafe_allow_html=True)
     try:
-        import io
-        preview_df = pd.read_csv(io.StringIO(csv_text)).dropna(how="all")
-        st.dataframe(preview_df, width="stretch", hide_index=True)
+        from app.tools import _read_csv_with_types
+        preview_df, project_types = _read_csv_with_types(csv_text)
+        preview_df = preview_df.dropna(how="all")
+
+        # Show project type badges if present
+        if project_types:
+            type_colors = {
+                "Refinement": "#a78bfa",   # purple
+                "Delivery": "#60a5fa",     # blue
+                "Operations": "#34d399",   # green
+            }
+            badges_html = " ".join(
+                f'<span style="display:inline-block;padding:0.25rem 0.75rem;'
+                f'border-radius:20px;font-size:0.78rem;font-weight:600;'
+                f'background:{type_colors.get(t, "#64748b")}22;'
+                f'color:{type_colors.get(t, "#64748b")};'
+                f'border:1px solid {type_colors.get(t, "#64748b")}55;'
+                f'margin:0 0.3rem 0.5rem 0;">'
+                f'{p} — {t}</span>'
+                for p, t in project_types.items()
+            )
+            st.markdown(badges_html, unsafe_allow_html=True)
+
+        st.dataframe(preview_df, use_container_width=True, hide_index=True)
     except Exception as preview_err:
         st.error(f"Could not parse CSV for preview: {preview_err}")
 

@@ -24,6 +24,7 @@ def compile_week_csv(
     submissions: dict[tuple[str, date], dict],
     target_friday: date,
     all_projects: list[str],
+    project_types: dict[str, str] | None = None,
 ) -> str | None:
     """Compile all user submissions for *target_friday* into a CSV string.
 
@@ -34,6 +35,10 @@ def compile_week_csv(
         target_friday: The Friday that identifies the reporting week.
         all_projects: Master list of project names used for consistent column
             ordering.
+        project_types: Optional mapping of project name → type label
+            (e.g. ``"Refinement"``, ``"Delivery"``, ``"Operations"``).
+            When provided, a type-header row is emitted before the
+            column header.
 
     Returns:
         A CSV string ready for download, or ``None`` if no submissions exist
@@ -64,7 +69,14 @@ def compile_week_csv(
     buf = io.StringIO()
     writer = csv.writer(buf, lineterminator="\r\n")
 
-    # Header
+    # Type-header row (if types are available)
+    if project_types:
+        type_row = ["", "", ""] + [
+            project_types.get(p, "") for p in ordered_projects
+        ]
+        writer.writerow(type_row)
+
+    # Column header
     writer.writerow(["Assignee", "Plan", "Hours"] + ordered_projects)
 
     users = sorted(week_data.keys())

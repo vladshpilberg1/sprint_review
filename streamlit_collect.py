@@ -229,15 +229,16 @@ st.markdown(
 # Constants
 # ---------------------------------------------------------------------------
 
-USERS = ["Alex", "Bob", "Elvin", "Dan"]
+USERS = ["Alex", "Dan", "Kyle", "Ike"]
 
 # Project name → type mapping
 PROJECTS = {
-    "Feature A for Company Initech": "Delivery",
-    "Model Migration for company Dunder Mifflin": "Delivery",
-    "Enhance routing capabilities": "Refinement",
-    "Improve code coverage to > 90%": "Operations",
-    "Create automated test suite": "Operations",
+    "Eval Suite": "Refinement",
+    "Prompt Migration": "Refinement",
+    "Tyrell Corp": "Delivery",
+    "Buy N Large": "Delivery",
+    "Code Coverage >90%": "Operations",
+    "Test Automation": "Operations",
 }
 
 PROJECT_NAMES = list(PROJECTS.keys())
@@ -395,8 +396,28 @@ with col2:
 selected_projects = st.multiselect(
     "📋 Projects you worked on / plan to work on",
     options=PROJECT_NAMES,
+    format_func=lambda p: f"{p}  ·  {PROJECTS.get(p, '')}",
     disabled=is_locked,
 )
+
+# Show type badges for selected projects
+if selected_projects:
+    _type_colors = {
+        "Refinement": "#a78bfa",
+        "Delivery": "#60a5fa",
+        "Operations": "#34d399",
+    }
+    _badges = " ".join(
+        f'<span style="display:inline-block;padding:0.2rem 0.65rem;'
+        f'border-radius:20px;font-size:0.75rem;font-weight:600;'
+        f'background:{_type_colors.get(PROJECTS[p], "#64748b")}22;'
+        f'color:{_type_colors.get(PROJECTS[p], "#64748b")};'
+        f'border:1px solid {_type_colors.get(PROJECTS[p], "#64748b")}55;'
+        f'margin:0 0.3rem 0.4rem 0;">'
+        f'{p} — {PROJECTS[p]}</span>'
+        for p in selected_projects
+    )
+    st.markdown(_badges, unsafe_allow_html=True)
 
 # Submit button
 can_submit = (
@@ -601,7 +622,10 @@ with compile_col2:
     )
 
 if compile_clicked:
-    csv_data = compile_week_csv(st.session_state.submissions, compile_friday, PROJECT_NAMES)
+    csv_data = compile_week_csv(
+        st.session_state.submissions, compile_friday, PROJECT_NAMES,
+        project_types=PROJECTS,
+    )
     if csv_data:
         st.session_state.compiled_csv = csv_data
         week_label = f"{compile_friday.month}_{compile_friday.day}"

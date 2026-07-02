@@ -56,6 +56,7 @@ a final structured summary in **exactly** this JSON format, wrapped in
   "projects": [
     {
       "name": "<exact project name as given in context>",
+      "type": "<project type label from context, e.g. Refinement, Delivery, Operations>",
       "plan_actions": "<concise summary of what was planned this week>",
       "plan_hours": <integer>,
       "achieved_actions": "<concise summary of what was achieved this week>",
@@ -83,7 +84,8 @@ a final structured summary in **exactly** this JSON format, wrapped in
 
 data_collection_agent = Agent(
     name="data_collection_agent",
-    model="gemma-4-26b-a4b-it",
+    # model="gemma-4-26b-a4b-it",
+    model="gemini-2.5-flash-lite",
     instruction=_INSTRUCTION,
     description="Conducts structured sprint progress interviews with team members.",
 )

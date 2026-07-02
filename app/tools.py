@@ -4,6 +4,54 @@ import io
 import pandas as pd
 
 
+def _read_csv_with_types(csv_content: str) -> tuple[pd.DataFrame, dict[str, str]]:
+    """Read a work-planning CSV and detect an optional type-header row.
+
+    The type-header row is the first row when the first 3 cells (Assignee,
+    Plan, Hours positions) are empty and the remaining cells contain type
+    labels (e.g. "Refinement", "Delivery", "Operations").
+
+    Returns:
+        (DataFrame with proper column headers, dict mapping project_col → type)
+    """
+    # Read raw — no header assumption
+    raw = pd.read_csv(io.StringIO(csv_content), header=None)
+
+    project_types: dict[str, str] = {}
+
+    # Check if row 0 is a type-header row:
+    # first 3 cells should be empty/NaN, and at least one later cell non-empty
+    first_row = raw.iloc[0]
+    first_three_empty = all(
+        pd.isna(first_row[i]) or str(first_row[i]).strip() == ""
+        for i in range(min(3, len(first_row)))
+    )
+    has_type_labels = any(
+        not pd.isna(first_row[i]) and str(first_row[i]).strip() != ""
+        for i in range(3, len(first_row))
+    )
+
+    if first_three_empty and has_type_labels:
+        # Row 0 is the type header; row 1 is the column header; data from row 2
+        type_values = [str(first_row[i]).strip() if not pd.isna(first_row[i]) else "" for i in range(len(first_row))]
+        col_names = [str(raw.iloc[1][i]).strip() if not pd.isna(raw.iloc[1][i]) else f"col_{i}" for i in range(len(raw.columns))]
+        df = raw.iloc[2:].copy()
+        df.columns = col_names
+        df = df.reset_index(drop=True)
+
+        # Build project → type mapping (skip first 3 fixed columns)
+        for i in range(3, len(col_names)):
+            if type_values[i]:
+                project_types[col_names[i]] = type_values[i]
+    else:
+        # No type-header row — standard format (row 0 is the column header)
+        df = pd.read_csv(io.StringIO(csv_content))
+        # No type info available
+        project_types = {}
+
+    return df, project_types
+
+
 def parse_csv_data(csv_content: str) -> dict:
     """Parse a work-planning CSV and return a structured text representation.
 
@@ -19,7 +67,7 @@ def parse_csv_data(csv_content: str) -> dict:
         markdown table and row-by-row breakdown ready for the LLM to analyse.
     """
     try:
-        df = pd.read_csv(io.StringIO(csv_content))
+        df, project_types = _read_csv_with_types(csv_content)
 
         # Drop fully empty rows
         df = df.dropna(how="all")
@@ -35,7 +83,13 @@ def parse_csv_data(csv_content: str) -> dict:
             }
 
         lines: list[str] = []
-        lines.append(f"## Projects detected: {', '.join(project_cols)}\n")
+
+        # List projects with types
+        proj_labels = []
+        for p in project_cols:
+            ptype = project_types.get(p)
+            proj_labels.append(f"{p} ({ptype})" if ptype else p)
+        lines.append(f"## Projects detected: {', '.join(proj_labels)}\n")
 
         # Group by assignee and emit a readable block per person
         assignees = df["Assignee"].dropna().unique()
@@ -50,7 +104,9 @@ def parse_csv_data(csv_content: str) -> dict:
                 for proj in project_cols:
                     val = str(row.get(proj, "")).strip()
                     if val and val.lower() not in ("nan", ""):
-                        lines.append(f"  - {proj}: {val}")
+                        ptype = project_types.get(proj)
+                        type_tag = f" [{ptype}]" if ptype else ""
+                        lines.append(f"  - {proj}{type_tag}: {val}")
             lines.append("")
 
         return {"status": "success", "data": "\n".join(lines)}
@@ -68,7 +124,7 @@ def extract_project_chunks(csv_content: str) -> dict:
     Returns:
         dict mapping project column names (e.g. "Project 1") to markdown chunk strings.
     """
-    df = pd.read_csv(io.StringIO(csv_content))
+    df, project_types = _read_csv_with_types(csv_content)
     df = df.dropna(how="all")
 
     fixed_cols = ["Assignee", "Plan", "Hours"]
@@ -96,8 +152,13 @@ def extract_project_chunks(csv_content: str) -> dict:
             continue
 
         chunk_lines = []
-        chunk_lines.append(f"# {proj}\n")
+        # Include project type in the heading
+        ptype = project_types.get(proj)
+        type_tag = f" ({ptype})" if ptype else ""
+        chunk_lines.append(f"# {proj}{type_tag}\n")
         chunk_lines.append(f"- **Week**: {week_str}")
+        if ptype:
+            chunk_lines.append(f"- **Type**: {ptype}")
         chunk_lines.append(f"- **Assignees**: {', '.join(assignees)}\n")
         chunk_lines.append("## Assignee Details\n")
 
@@ -130,4 +191,3 @@ def extract_project_chunks(csv_content: str) -> dict:
         chunks[proj] = "\n".join(chunk_lines)
 
     return chunks
-
