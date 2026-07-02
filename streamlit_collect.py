@@ -323,6 +323,7 @@ _DEFAULTS = {
     "current_projects": [],
     "compiled_csv": None,
     "compiled_filename": None,
+    "input_key_counter": 0,     # bump to clear the text_area after send
 }
 for key, default in _DEFAULTS.items():
     if key not in st.session_state:
@@ -445,26 +446,59 @@ if st.session_state.chat_active or st.session_state.interview_complete:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # Completion notice
-    if st.session_state.interview_complete:
-        st.markdown(
-            '<div class="status-card">'
-            "✅ <strong>Interview complete!</strong> Your responses have been recorded."
-            "</div>",
-            unsafe_allow_html=True,
+    # ── Inline input area (between messages and Finish button) ────────────
+    if st.session_state.chat_active and not st.session_state.interview_complete:
+        input_key = f"user_input_{st.session_state.input_key_counter}"
+        user_input = st.text_area(
+            "Your response",
+            key=input_key,
+            placeholder="Type your response here…",
+            height=100,
+            label_visibility="collapsed",
         )
 
-        if st.button("🔄 Start New Interview", key="new_interview_btn"):
-            st.session_state.chat_active = False
-            st.session_state.interview_complete = False
-            st.session_state.chat_messages = []
-            st.session_state.adk_session_service = None
-            st.session_state.adk_session_id = None
+        send_col, finish_col, _ = st.columns([1, 1, 2])
+
+        with send_col:
+            send_clicked = st.button("➤ Send", key="send_btn", use_container_width=True)
+
+        with finish_col:
+            finish_clicked = st.button(
+                "📋 Finish & Compile Now",
+                key="finish_btn",
+                help="Ask the agent to compile all information gathered so far into the final JSON.",
+                use_container_width=True,
+            )
+
+        # ── Handle send ──────────────────────────────────────────────────
+        if send_clicked and user_input and user_input.strip():
+            prompt = user_input.strip()
+            st.session_state.chat_messages.append({"role": "user", "content": prompt})
+
+            with st.spinner("Agent is thinking…"):
+                response = asyncio.run(
+                    _send_message(
+                        st.session_state.adk_session_service,
+                        st.session_state.adk_session_id,
+                        prompt,
+                    )
+                )
+            st.session_state.chat_messages.append({"role": "assistant", "content": response})
+
+            # Check for JSON completion
+            parsed = extract_json_from_response(response)
+            if parsed:
+                key = (st.session_state.current_user, st.session_state.current_week)
+                st.session_state.submissions[key] = parsed
+                st.session_state.interview_complete = True
+                st.session_state.chat_active = False
+
+            # Bump key counter to clear the text area on rerun
+            st.session_state.input_key_counter += 1
             st.rerun()
 
-    # "Finish early" helper — ask the agent to compile JSON now
-    if st.session_state.chat_active and not st.session_state.interview_complete:
-        if st.button("📋 Finish & Compile Now", key="finish_btn", help="Ask the agent to compile all information gathered so far into the final JSON."):
+        # ── Handle finish early ──────────────────────────────────────────
+        if finish_clicked:
             finish_msg = (
                 "Please compile all the information we have discussed so far and "
                 "output the final JSON summary now, even if some projects are incomplete."
@@ -486,32 +520,27 @@ if st.session_state.chat_active or st.session_state.interview_complete:
                 st.session_state.submissions[key] = parsed
                 st.session_state.interview_complete = True
                 st.session_state.chat_active = False
+
+            st.session_state.input_key_counter += 1
             st.rerun()
 
-# Chat input (always at the bottom; disabled when inactive)
-if st.session_state.chat_active and not st.session_state.interview_complete:
-    if prompt := st.chat_input("Your response…"):
-        st.session_state.chat_messages.append({"role": "user", "content": prompt})
+    # Completion notice
+    if st.session_state.interview_complete:
+        st.markdown(
+            '<div class="status-card">'
+            "✅ <strong>Interview complete!</strong> Your responses have been recorded."
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
-        with st.spinner("Agent is thinking…"):
-            response = asyncio.run(
-                _send_message(
-                    st.session_state.adk_session_service,
-                    st.session_state.adk_session_id,
-                    prompt,
-                )
-            )
-        st.session_state.chat_messages.append({"role": "assistant", "content": response})
-
-        # Check for JSON completion
-        parsed = extract_json_from_response(response)
-        if parsed:
-            key = (st.session_state.current_user, st.session_state.current_week)
-            st.session_state.submissions[key] = parsed
-            st.session_state.interview_complete = True
+        if st.button("🔄 Start New Interview", key="new_interview_btn"):
             st.session_state.chat_active = False
-
-        st.rerun()
+            st.session_state.interview_complete = False
+            st.session_state.chat_messages = []
+            st.session_state.adk_session_service = None
+            st.session_state.adk_session_id = None
+            st.session_state.input_key_counter = 0
+            st.rerun()
 
 # ---------------------------------------------------------------------------
 # Compile section (always visible)

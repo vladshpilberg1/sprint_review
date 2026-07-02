@@ -70,8 +70,8 @@ Each summary file must follow this structure:
 
 - **Week**: <date range>
 - **Team**: <comma-separated list of assignees>
-- **Total Planned Hours**: <sum of planned hours across all assignees>
-- **Total Achieved Hours**: <sum of achieved hours across all assignees>
+- **Total Planned Hours**: <sum of CURRENT WEEK planned hours across all assignees — do NOT include next-week plan hours>
+- **Total Achieved Hours**: <sum of CURRENT WEEK achieved hours across all assignees>
 
 ## Project Classification
 
@@ -174,3 +174,10 @@ Write to: `sprint_review_results/summaries/_manifest.md`
   exist.
 - Overwrite any existing summary files from a previous run.
 - Keep each summary factual and concise — no narrative filler.
+- **Hours totals rule**: "Total Planned Hours" and "Total Achieved Hours"
+  in the summary header must include **only the current week's** Plan and
+  Achieved rows. Next-week Plan hours must NOT be added to these totals.
+  Next-week data is used only in the "Next Week Plan" section.
+- **Capacity comparison**: When comparing planned vs. achieved hours
+  (for variance calculations, risk signals, etc.), always compare
+  current-week planned hours against current-week achieved hours.

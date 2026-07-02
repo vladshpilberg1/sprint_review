@@ -83,7 +83,7 @@ a final structured summary in **exactly** this JSON format, wrapped in
 
 data_collection_agent = Agent(
     name="data_collection_agent",
-    model="gemini-2.5-flash",
+    model="gemma-4-26b-a4b-it",
     instruction=_INSTRUCTION,
     description="Conducts structured sprint progress interviews with team members.",
 )

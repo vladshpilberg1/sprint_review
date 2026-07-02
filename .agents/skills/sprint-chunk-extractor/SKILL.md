@@ -36,8 +36,12 @@ Each person has rows for:
 ## Procedure
 
 1. **Read the CSV** provided by the user (file path or pasted content).
-2. **Identify the week date range** from the Plan row labels
-   (e.g. "6/26 Plan - Actions" → week of June 26; "7/3 Plan - Actions" → next week is July 3).
+2. **Identify the week date range** from the Plan row labels.
+   Dates in the CSV always represent **Fridays**. Derive the
+   Monday–Friday work week by subtracting 4 days from the Friday
+   date to get the Monday.
+   Example: "7/3 Plan - Actions" → Friday is July 3 → Monday is
+   June 29 → week range is "June 29 – July 3, 2026".
 3. **Identify project columns** — every column after `Hours`.
 4. **For each project column**, check if any person has non-empty action
    or hours data. If the entire column is blank, skip that project.
@@ -105,3 +109,6 @@ Write the manifest to: `sprint_review_results/chunks/_manifest.md`
 - Overwrite any existing chunk files from a previous run.
 - Only include projects that have at least one non-empty action or hours
   entry across all assignees.
+- **Friday date rule**: All dates in the CSV represent Fridays. Always
+  derive the week as Monday (Friday − 4 days) through Friday.
+  Do not assume the date itself is Monday.
