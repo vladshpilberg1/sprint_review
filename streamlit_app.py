@@ -246,7 +246,7 @@ if uploaded_file is not None:
                 # ── Phase 2: Per-chunk summarization ─────────────────────────
                 status_box.write(f"⚡ Summarizing {num_projects} projects (up to 5 concurrent calls)...")
 
-                MAX_CONCURRENT = 5  # respect Gemini API rate limits
+                MAX_CONCURRENT = 1  # respect Gemini API rate limits
 
                 async def summarize_one_chunk(
                     proj_name: str, chunk_md: str, semaphore: asyncio.Semaphore
@@ -272,6 +272,7 @@ if uploaded_file is not None:
                             ],
                         )
                         result_parts: list[str] = []
+                        print("Starting summarization for project:", proj_name)
                         async for event in runner.run_async(
                             user_id="streamlit_user",
                             session_id=session.id,
@@ -281,6 +282,9 @@ if uploaded_file is not None:
                                 for part in event.content.parts:
                                     if hasattr(part, "text") and part.text:
                                         result_parts.append(part.text)
+                        print("Finished summarization for project:", proj_name)
+                        # Delay between calls to stay within free-tier rate limits
+                        await asyncio.sleep(20)
                         return proj_name, "\n".join(result_parts).strip()
 
                 async def run_all_summarizers(all_chunks: dict) -> str:

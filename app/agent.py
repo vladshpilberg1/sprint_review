@@ -43,7 +43,7 @@ project_summarizer_agent = Agent(
 
 finalizer_agent = Agent(
     name="finalizer_agent",
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     instruction=_load_skill_instruction("sprint-review-finalizer"),
     description="Aggregates individual project summaries into the final sprint review.",
 )
