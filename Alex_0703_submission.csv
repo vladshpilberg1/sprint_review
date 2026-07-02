@@ -1,7 +1,0 @@
-Assignee,Plan,Hours,Enhance routing capabilities,Improve code coverage to > 90%
-Alex,7/3 Plan - Actions,,"Update model routing, perform evaluation, analysis.",Create corresponding JIRA tickets and document baseline for Tools and Agents repos. Create unit tests for these two repos and document updated code coverage in JIRA and Confluence.
-Alex,7/3 Plan - Hours,40,20,20
-Alex,7/3 Achieved - Actions,,Completed model routing update.,Completed all the steps for Tools repo.
-Alex,7/3 Achieved - Hours,40,20,20
-Alex,7/10 Plan - Actions,,"Finish evaluation, analysis, and production deployment.",Complete unit test for Agent repo.
-Alex,7/10 Plan - Hours,30,20,10
