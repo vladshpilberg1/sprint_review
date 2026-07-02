@@ -177,6 +177,25 @@ st.markdown(
     /* ---- Chat styling ---- */
     .stChatMessage {
         border-radius: 12px !important;
+        background: rgba(255, 255, 255, 0.06) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    .stChatMessage p,
+    .stChatMessage li,
+    .stChatMessage span,
+    .stChatMessage div,
+    .stChatMessage strong,
+    .stChatMessage em,
+    .stChatMessage code {
+        color: #f1f5f9 !important;
+    }
+    .stChatMessage strong {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    .stChatMessage [data-testid="chatAvatarIcon-assistant"] + div p,
+    .stChatMessage [data-testid="chatAvatarIcon-assistant"] + div li {
+        color: #e2e8f0 !important;
     }
 
     /* ---- Spinner text ---- */
