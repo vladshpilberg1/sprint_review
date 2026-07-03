@@ -1,0 +1,8 @@
+,,,Delivery,Operations
+Assignee,Plan,Hours,Tyrell Corp,Code Coverage >90%
+Dan,7/3 Plan - Actions,,Fix errors on load of the UI screen,"Write Unit tests to support Adoption for repo_d, repo_o and repo_u"
+Dan,7/3 Plan - Hours,26,14,12
+Dan,7/3 Achieved - Actions,,Adjusted layout to address bugs found,"Completed writing unit tests for repo_d, repo_o and repo_u"
+Dan,7/3 Achieved - Hours,24,12,12
+Dan,7/10 Plan - Actions,,"Extend existing agent capabilities to support jpeg files (design, mocks, implementation)",
+Dan,7/10 Plan - Hours,30,30,
